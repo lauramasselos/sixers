@@ -6,7 +6,7 @@ import time
 
 from pyzbar.pyzbar import decode
 
-from .constants import *
+import constants
 
 
 camera = {"frame": None}
@@ -15,6 +15,8 @@ data = {"server-end": False}
 SEEN_YELLOW = False
 # cmds = ["FORWARD","LEFT", "RIGHT","END"]
 cmds = None
+
+EV3_SOCKET = None
 
 corner_detected = False
 corner_detected_once = False
@@ -26,6 +28,14 @@ yellow_threshed = None
 END = False
 sleep = False
 
+def crash():
+    print("Crashing.")
+    data["server-end"] = True
+    if EV3_SOCKET:
+        EV3_SOCKET.close()
+
+    sys.exit(1)
+
 
 def start_camera():
     global camera
@@ -33,6 +43,10 @@ def start_camera():
     vc = cv2.VideoCapture(0)
     vc.set(3, 160)
     vc.set(4, 120)
+
+    if vc is None or not vc.isOpened():
+        vc.release()
+        crash()
 
     camera_fail_counter = 0
     while not data['server-end']:
@@ -43,7 +57,7 @@ def start_camera():
 
             if camera_fail_counter > 100000:
                 vc.release()
-                sys.exit(1)
+                crash()
 
         time.sleep(0.05)
 
@@ -60,7 +74,7 @@ def calculate_frame():
     frame = camera["frame"]
 
     if frame is None:
-        return MoveCommand.STOP
+        return constants.MoveCommand.FRAME_EMPTY
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -97,8 +111,8 @@ def calculate_frame():
     if END:
         if top_left_index != 0 and bottom_left_index != 0 and np.abs(w // 2 - vert_idx) < 35:
             data["server-end"] = True
-            return MoveCommand.STOP
-        return MoveCommand.CORNER_LEFT
+            return constants.MoveCommand.STOP
+        return constants.MoveCommand.CORNER_LEFT
 
     if corner_detected and not corner_detected_once and top_left_index != 0 and bottom_left_index != 0:
         if np.abs(w // 2 - vert_idx) < 35:
@@ -111,17 +125,17 @@ def calculate_frame():
         corner_detected_once = False
         if cmds[0] == "LEFT":
             is_current_color_green = not is_current_color_green
-            return MoveCommand.CORNER_LEFT
+            return constants.MoveCommand.CORNER_LEFT
         elif cmds[0] == "RIGHT":
             is_current_color_green = not is_current_color_green
-            return MoveCommand.CORNER_RIGHT
+            return constants.MoveCommand.CORNER_RIGHT
         elif cmds[0] == "FORWARD":
             sleep = True
-            return MoveCommand.FORWARD
+            return constants.MoveCommand.FORWARD
         elif cmds[0] == "END":
             END = True
-            return MoveCommand.CORNER_LEFT
-        return MoveCommand.STOP
+            return constants.MoveCommand.CORNER_LEFT
+        return constants.MoveCommand.STOP
 
     if not corner_detected:
         decoded_frame = decode(frame)
@@ -131,26 +145,30 @@ def calculate_frame():
             corner_detected = True
             corner_detected_once = True
             check_if_stops_after_switch = True
-            return MoveCommand.FORWARD
+            return constants.MoveCommand.FORWARD
         elif top_left_index == 0 and bottom_left_index == 0:
-            return 2
+            return constants.MoveCommand.STOP
         if np.abs(w // 2 - vert_idx) > 20:
             if w // 2 - vert_idx > 0:
-                return MoveCommand.ALIGN_LEFT
+                return constants.MoveCommand.ALIGN_LEFT
             else:
-                return MoveCommand.ALIGN_RIGHT
+                return constants.MoveCommand.ALIGN_RIGHT
         else:
-            return MoveCommand.FORWARD
+            return constants.MoveCommand.FORWARD
     else:
         return old_type
 
 
-def start_socket(directions, ev3_conn, ev3_address, is_green):
+def start_socket(directions, ev3_socket, ev3_conn, ev3_address, is_green):
     global old_type
     global cmds
     global data
     global is_current_color_green
     global END
+    global EV3_SOCKET
+
+    EV3_SOCKET = ev3_socket
+
     is_current_color_green = is_green
 
     cmds = directions
@@ -164,7 +182,12 @@ def start_socket(directions, ev3_conn, ev3_address, is_green):
         new_type = calculate_frame()
         if old_type == new_type:
             continue
-        ev3_conn.sendall(str(new_type).encode())
+        print('New command is', new_type)
+        if isinstance(new_type, int):
+            print('received int type command from calculate_frame, use enum!')
+            ev3_conn.sendall(str(new_type).encode())
+        if new_type is not None:
+            ev3_conn.sendall(str(new_type.value).encode())
         old_type = new_type
     data['server-end'] = False
     END = False

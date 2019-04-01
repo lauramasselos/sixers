@@ -12,3 +12,8 @@ class MoveCommand(Enum):
     FORWARD = 5
     CORNER_LEFT = 6
     CORNER_RIGHT = 7
+    FRAME_EMPTY = 8
+    END = 9
+    BACKWARD ="a"
+    BACKWARD_ALIGN_LEFT="b"
+    BACKWARD_ALIGN_RIGHT="c"

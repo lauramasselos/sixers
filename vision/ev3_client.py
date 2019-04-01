@@ -4,11 +4,15 @@ import threading
 import time
 import select
 
-from .constants import *
+import constants
 
-us = ev3.UltrasonicSensor()
-us.mode = 'US-DIST-CM'
-units = us.units
+try:
+    us = ev3.UltrasonicSensor()
+    us.mode = 'US-DIST-CM'
+    units = us.units
+except:
+    us = None
+
 
 data = {"server-end": False, "obstacle-found": False, "said": False, "last-command": None, "time-said": time.time()}
 BRAKING_TYPE = 'brake'
@@ -49,19 +53,19 @@ def align(m, m1, m2, m3, left_value, right_value):
 
 
 def move_albert(move, m, m1, m2, m3):
-    if (move == MoveCommand.FORWARD.value):
+    if (move == constants.MoveCommand.FORWARD.value):
         # motors["running"]=True
         go_forward(m, m1, m2, m3, 200)
-    elif move == MoveCommand.ALIGN_LEFT.value:
+    elif move == constants.MoveCommand.ALIGN_LEFT.value:
         # print(response, "ALIGN LEFT")
         align(m, m1, m2, m3, 100, 250)
-    elif move == MoveCommand.ALIGN_RIGHT.value:
+    elif move == constants.MoveCommand.ALIGN_RIGHT.value:
         # print(response, "ALIGN RIGHT")
         align(m, m1, m2, m3, 250, 100)
-    elif (move == MoveCommand.STOP.value):
+    elif (move == constants.MoveCommand.STOP.value):
         # print(response, "STOP")
         stop(m, m1, m2, m3)
-    elif (move == MoveCommand.QR.value):
+    elif (move == constants.MoveCommand.QR.value):
         # print(response, "QR")
         stop(m, m1, m2, m3)
     else:
@@ -69,10 +73,10 @@ def move_albert(move, m, m1, m2, m3):
 
 
 def corner_type(m, m1, m2, m3, c_type):
-    if c_type == MoveCommand.CORNER_RIGHT.value:
+    if c_type == constants.MoveCommand.CORNER_RIGHT.value:
         move_left(m, m1, 100)
         move_right(m2, m3, -100)
-    elif c_type == MoveCommand.CORNER_LEFT.value:
+    elif c_type == constants.MoveCommand.CORNER_LEFT.value:
         move_left(m, m1, -100)
         move_right(m2, m3, 100)
 
@@ -80,14 +84,13 @@ def corner_type(m, m1, m2, m3, c_type):
 def check_for_obstacle(m, m1, m2, m3):
     global data
     while not data["server-end"]:
-        distance = us.value() / 10
-        if distance < 20:
-            print("whatttt")
+        distance = us.value() / 10 if us else None
+        if us and distance < 20:
             data["obstacle-found"] = True
             stop(m, m1, m2, m3)
             if not data["said"] and time.time() - data["time-said"] > 5:
                 try:
-                    ev3.Sound.speak("Could you please move out!").wait()
+                    ev3.Sound.speak("Could you please move out?").wait()
                 except:
                     pass
                 data["time-said"] = time.time()
@@ -106,7 +109,7 @@ def check_for_obstacle(m, m1, m2, m3):
 def start_socket(m, m1, m2, m3):
     global data
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((RPI_ADDRESS, PORT))
+    sock.connect((constants.RPI_ADDRESS, constants.PORT))
     while not data['server-end']:
         try:
             ready_to_read, ready_to_write, in_error = select.select([sock, ], [sock, ], [], 5)
@@ -123,6 +126,7 @@ def start_socket(m, m1, m2, m3):
             data_type = sock.recv(1).decode()
             if len(data_type) != 1:
                 continue
+            print('received command code', data_type)
             move = int(data_type)
             print(move)
             data["last-command"] = move
@@ -138,6 +142,11 @@ if __name__ == "__main__":
         m1 = ev3.LargeMotor('outB')
         m2 = ev3.LargeMotor('outC')
         m3 = ev3.LargeMotor('outD')
+
+        if not us:
+            print("Ultra-sonic sensor not connected. Ignoring for now.")
+
+
         if not m.connected:
             print("Plug a motor into port A")
         elif not m1.connected:
