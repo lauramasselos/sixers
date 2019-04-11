@@ -1,10 +1,11 @@
+import subprocess
 import time
 
 import settings
 import requests
 
 from vision.exceptions import IncorrectNode
-from vision.server2 import Server
+from vision.server import Server
 
 
 class Task:
@@ -44,15 +45,17 @@ class Task:
     def run(self):
         if self.execute_all_at_once:
             self.execute_all()
-            self.post_all_tasks()
+            if self.success:
+                self.post_all_tasks()
             return
 
         for task in self.arguments_grouped:
             self.execute_one(task['args'])
-            self.post_task(task['args'])
+            if self.success:
+                self.post_task(task['args'])
 
 
-class AbstractMoveTask(Task):
+class MoveTask(Task):
     """
     This just simulates moving
     """
@@ -61,20 +64,45 @@ class AbstractMoveTask(Task):
     def post_new_location(self, location):
         r = requests.post(
             settings.API_LOCATION,
-            data={'location': location},
+            data={'location': location.lower()},
             headers=settings.AUTH_HEADERS
         )
         r.raise_for_status()
 
     def post_all_tasks(self):
-        self.post_new_location(self.arguments_grouped[-1]['args']['destination'])
-        self.success = True
-
-    def execute_all(self):
         pass
 
+    def execute_all(self):
+        directions = [f['relative_direction'] for f in self.arguments_grouped]
+        directions.append('END')
+        directions.pop(0)
 
-class AbstractPickupTask(Task):
+        nodes_expected = [f['args']['destination'].lower() for f in self.arguments_grouped]
+        nodes_expected.insert(0, self.arguments_grouped[0]['args']['origin'].lower())
+        # skip the first code
+        print('QR codes expected:', nodes_expected)
+        print('Directions', directions)
+
+
+
+        # is green:
+        # if currently at table: its blue
+        # if at chefs: we look for green
+
+        is_green = self.arguments_grouped[0]['args']['origin'].lower() in ('chef', 'k1')
+
+        assert isinstance(self.server, Server), "Did you forgot to set up Server instance?"
+        try:
+            self.server.setup_order(directions, is_green, nodes_expected)
+            self.post_new_location(self.arguments_grouped[-1]['args']['destination'])
+        except IncorrectNode as e:
+            self.post_new_location(e.node_seen.lower())
+            self.success = False
+            return
+        self.success = True
+
+
+class PickupTask(Task):
     def post_task(self, task):
         # needs to update order state
         order_id = task['order'].strip('ORDER')
@@ -88,8 +116,12 @@ class AbstractPickupTask(Task):
         r.raise_for_status()
         self.success = True
 
+    def execute_one(self, task):
+        time.sleep(10)
+        self.success = True
 
-class AbstractHandoverTask(Task):
+
+class HandoverTask(Task):
     def post_task(self, task):
         # needs to update order state
         order_id = task['delivery'].strip('ORDER')
@@ -102,41 +134,7 @@ class AbstractHandoverTask(Task):
         r.raise_for_status()
         self.success = True
 
-
-class MoveTask(AbstractMoveTask):
-    def execute_all(self):
-        directions = [f['relative_direction'] for f in self.arguments_grouped]
-        directions.append('END')
-        directions.pop(0)
-
-        nodes_expected = [f['args']['destination'] for f in self.arguments_grouped]
-        #     (
-        #     set(f['args']['destination'] for f in self.arguments_grouped) |
-        #     set(f['args']['origin'] for f in self.arguments_grouped)
-        # )
-
-        # is green:
-        # if currently at table: its blue
-        # if at chefs: we look for green
-
-        is_green = self.arguments_grouped[0]['args']['origin'].lower() == 'chef'
-
-        assert isinstance(self.server, Server), "Did you forgot to set up Server instance?"
-        try:
-            self.server.setup_order(directions, is_green, nodes_expected)
-        except IncorrectNode as e:
-            self.post_new_location(e.node_seen)
-            self.success = False
-        self.success = True
-
-
-class PickupTask(AbstractPickupTask):
     def execute_one(self, task):
-        time.sleep(10)
-        self.success = True
-
-
-class HandoverTask(AbstractHandoverTask):
-    def execute_one(self, task):
-        time.sleep(10)
+        subprocess.call(["aplay", "/home/student/sixers/sounds/takeit.wav"])
+        time.sleep(5)
         self.success = True

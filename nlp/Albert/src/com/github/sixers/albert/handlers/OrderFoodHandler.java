@@ -45,6 +45,7 @@ public class OrderFoodHandler implements IntentRequestHandler {
 	public Optional<Response> handle(HandlerInput handlerInput, IntentRequest intentRequest) {
 //
 
+
 		Intent intent = intentRequest.getIntent();
 		// Food names
 		Slot foodone = intent.getSlots().get("Foodone");
@@ -97,7 +98,7 @@ public class OrderFoodHandler implements IntentRequestHandler {
 		// Construct respond text
 		String speechText = "You have ordered ";
 		//Construct chef's order string
-		String chefText = "";
+		String chefText = "NEW ORDER: ";
 		List<String> products = new ArrayList<>();
 		products.add("" + numoneValue + " " + foodoneName);
 		speechText = speechText + numoneValue + " " + foodoneName;
@@ -193,6 +194,8 @@ public class OrderFoodHandler implements IntentRequestHandler {
 				}
 			}
 		}
+		
+		speechText = speechText + "What else can I get for you?";
 
 		if (intent.getConfirmationStatus().getValue().toString().equals("CONFIRMED")) {
 			
@@ -200,7 +203,7 @@ public class OrderFoodHandler implements IntentRequestHandler {
 			HttpPost httpPost = new HttpPost("http://albert.visgean.me/api/orders/");
 
 			httpPost.addHeader("Authorization", System.getenv("API_TOKEN"));
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+			List<NameValuePair> nameValuePairs = new ArrayList<>();
 			nameValuePairs.add(new BasicNameValuePair("device_id", deviceID));
 			// TODO: Should be Modified to adapted new API.
 			nameValuePairs.add(new BasicNameValuePair("products_text", chefText));
@@ -215,11 +218,11 @@ public class OrderFoodHandler implements IntentRequestHandler {
 			}
 
 			return handlerInput.getResponseBuilder().withSpeech(speechText)
-					.withReprompt("Would you like anything else?").withShouldEndSession(false).build();
+					.withReprompt("What else can I get for you").withShouldEndSession(false).build();
 		} else {
 			return handlerInput.getResponseBuilder()
-					.withSpeech("Okay, I've cancelled that request. Would you like something else?")
-					.withReprompt("Would you like anything else?").withShouldEndSession(false).build();
+					.withSpeech("Okay, I've cancelled that request. What else can I get for you")
+					.withReprompt("What else can I get for you?").withShouldEndSession(false).build();
 		}
 	}
 

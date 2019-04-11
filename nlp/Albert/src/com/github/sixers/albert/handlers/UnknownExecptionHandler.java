@@ -13,27 +13,30 @@
 
 package com.github.sixers.albert.handlers;
 
+import com.amazon.ask.dispatcher.exception.ExceptionHandler;
 import com.amazon.ask.dispatcher.request.handler.HandlerInput;
-import com.amazon.ask.dispatcher.request.handler.RequestHandler;
+import com.amazon.ask.exception.AskSdkException;
 import com.amazon.ask.model.Response;
 
 import java.util.Optional;
 
-import static com.amazon.ask.request.Predicates.intentName;
-
-public class CheckServedHereHandler implements RequestHandler {
+public class UnknownExecptionHandler implements ExceptionHandler {
     @Override
-    public boolean canHandle(HandlerInput input) {
-        return input.matches(intentName("CheckServedHere"));
+    public boolean canHandle(HandlerInput input, Throwable throwable) {
+        return throwable instanceof AskSdkException;
     }
 
     @Override
-    public Optional<Response> handle(HandlerInput input) {
-        String speechText = "Are you ready to order?";
+    public Optional<Response> handle(HandlerInput input, Throwable throwable) {
+
+        String exceptionType = throwable.getMessage();
+        String tech_resp = "Human assistent is coming, please be patient";
+        // TODO: DEAL WITH THE EXCEPTION.
+
+        // TODO: DO A POST REQUEST TO THE API.
         return input.getResponseBuilder()
-                .withSpeech(speechText)
-                .withReprompt("Would you like a few more minutes?")
-                .withSimpleCard("HelloWorld", speechText)
+                .withSpeech(tech_resp)
                 .build();
+
     }
 }

@@ -94,6 +94,36 @@ class Order(models.Model):
         return f"order{self.pk}"
 
 
+class Cancellation(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    table_number = models.CharField(max_length=30)
+    text = models.TextField()
+    processed = models.BooleanField(default=False)
+
+    class Meta:
+        get_latest_by = ['updated_at']
+
+    def __str__(self):
+        return f"cancellation{self.pk}"
+
+
+class HumanRequest(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    table_number = models.CharField(max_length=30)
+    text = models.TextField()
+    processed = models.BooleanField(default=False)
+
+    class Meta:
+        get_latest_by = ['updated_at']
+
+    def __str__(self):
+        return f"humanrequest at {self.created_at}"
+
+
 class PDDLError(Exception):
     pass
 
@@ -130,10 +160,15 @@ class ExecutionPlan(models.Model):
         graph = latest_map.get_networkx_graph()
 
         # 1. generate problem file
-        delivery_order = Order.objects.filter(state=ORDER_STATE_DELIVERY).latest()
+        try:
+            delivery_order = Order.objects.filter(state=ORDER_STATE_DELIVERY).latest()
+        except Order.DoesNotExist:
+            delivery_order = None
+
+        current_location = LocationUpdate.objects.latest().location.lower()
 
         context = {
-            'current_location': LocationUpdate.objects.latest(),
+            'current_location': current_location,
             'chef_location': latest_map.chef_node,
             'delivery_order': delivery_order,
             'locations': graph.nodes,
@@ -141,7 +176,7 @@ class ExecutionPlan(models.Model):
         }
 
         # if there is nothing to be done do not generate new plan!
-        if not delivery_order:
+        if not delivery_order and latest_map.chef_node.lower() == current_location:
             return None
 
         plan = cls()

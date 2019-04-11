@@ -9,7 +9,8 @@ router.register(r'orders', views.OrderViewSet)
 router.register(r'plans', views.PlanView)
 router.register(r'location', views.LocationUpdateViewSet)
 router.register(r'dots', views.DotAssociationViewSet)
-
+router.register(r'cancel', views.CancellationViewSet)
+router.register(r'human_requests', views.HumanRequestViewSet)
 
 
 app_name = 'albert_api'

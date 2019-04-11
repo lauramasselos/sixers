@@ -11,24 +11,16 @@ from utils import group_plan
 
 sys.path.append(os.path.abspath('..'))
 
-from vision.server2 import Server
+from vision.server import Server
 
 
-TASKS_DEBUG = {
-    'MOVE': tasks.AbstractMoveTask,
-    'PICKUP': tasks.AbstractPickupTask,
-    'HANDOVER': tasks.AbstractHandoverTask
-}
-
-TASKS_REAL = {
+TASKS = {
     'MOVE': tasks.MoveTask,
     'PICKUP': tasks.PickupTask,
     'HANDOVER': tasks.HandoverTask
 }
 
 GROUP_TASKS = ['MOVE']
-
-
 
 
 class MainControl:
@@ -44,13 +36,6 @@ class MainControl:
     """
 
     current_plan = None
-    plan_grouped = []
-
-    if settings.DEBUG:
-        tasks_handlers = TASKS_DEBUG
-    else:
-        tasks_handlers = TASKS_REAL
-
 
     def __init__(self):
         self.server = Server()
@@ -89,7 +74,7 @@ class MainControl:
 
 
     def execute_group(self, action, group_data):
-        task_class = self.tasks_handlers[action]
+        task_class = TASKS[action]
         task = task_class(group_data)
         task.server = self.server
 
@@ -97,6 +82,7 @@ class MainControl:
         return task
 
     def execute_plan(self):
+        succeeded = True
         for group in self.plan_grouped:
             action = group[0]['action']
             task = self.execute_group(action, group)
@@ -106,10 +92,12 @@ class MainControl:
                 self.report_success(last_id)
             else:
                 self.report_failure(last_id)
+                succeeded = False
                 break
-
-        self.update_plan({'state': 'finished'})
-        self.current_plan = None
+        if self.current_plan:
+            new_state = 'finished' if succeeded else 'aborted'
+            self.update_plan({'state': new_state})
+            self.current_plan = None
 
 
     def report_success(self, sub_id):

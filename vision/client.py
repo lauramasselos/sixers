@@ -16,9 +16,10 @@ except:
     sys.exit(1)
 
 PORT = 50000
-data = {"server-end": False, "obstacle-found": False, "said": False, "last-command": None, "time-said": time.time()}
+data = {"server-end": False, "obstacle-found": False, "said": False, "last-command": None, "time-said": time.time(), "obstacle-avoided": False}
 BRAKING_TYPE='brake'
 MOVING_CORNER = False
+SPEED_RATIO=1
 
 def move_left(m, m1, value=250):
     m.run_forever(speed_sp=value)
@@ -31,8 +32,8 @@ def move_right(m2, m3, value=250):
 
 def go_forward(m, m1, m2, m3, value):
     global motors
-    move_left(m ,m1, value)
-    move_right(m2, m3, value)
+    move_left(m ,m1, value*SPEED_RATIO)
+    move_right(m2, m3, value*SPEED_RATIO)
     #while(motors["running"]):
     #    if(not m.is_running and not m1.is_running and not m2.is_running and not m3.is_running):
     #        motors["running"]=False
@@ -46,8 +47,8 @@ def stop(m, m1, m2, m3):
 
 def align(m, m1, m2, m3, left_value, right_value):
     global motors
-    move_left(m, m1, left_value)
-    move_right(m2, m3, right_value)
+    move_left(m, m1, left_value*SPEED_RATIO)
+    move_right(m2, m3, right_value*SPEED_RATIO)
 
 
 class Type(Enum):
@@ -68,16 +69,16 @@ class Type(Enum):
 def move_albert(move, m, m1, m2, m3):
     if(move==Type.FORWARD.value):
         #motors["running"]=True
-        go_forward(m, m1, m2, m3, 200)
+        go_forward(m, m1, m2, m3, 400)
     elif(move==Type.BACKWARD.value):
         #motors["running"]=True
-        go_forward(m, m1, m2, m3, -200)
+        go_forward(m, m1, m2, m3, -400)
     elif move == Type.ALIGN_LEFT.value:
         #print(response, "ALIGN LEFT")
-        align(m, m1, m2, m3, 100, 250)
+        align(m, m1, m2, m3, 150, 250)
     elif move == Type.ALIGN_RIGHT.value:
         #print(response, "ALIGN RIGHT")
-        align(m, m1, m2, m3, 250, 100)
+        align(m, m1, m2, m3, 250, 150)
     elif move == Type.BACKWARD_ALIGN_LEFT.value:
         #print(response, "BACKWARD ALIGN LEFT")
         align(m, m1, m2, m3, -100, -500)
@@ -95,11 +96,11 @@ def move_albert(move, m, m1, m2, m3):
 
 def corner_type(m, m1, m2, m3, c_type):
     if c_type == Type.CORNER_RIGHT.value:
-        move_left(m, m1, 100)
-        move_right(m2, m3, -100)
+        move_left(m, m1, 200)
+        move_right(m2, m3, -200)
     elif c_type == Type.CORNER_LEFT.value:
-        move_left(m, m1, -100)
-        move_right(m2, m3, 100)
+        move_left(m, m1, -200)
+        move_right(m2, m3, 200)
 
 def check_for_obstacle(m, m1, m2, m3):
     global data
@@ -108,6 +109,7 @@ def check_for_obstacle(m, m1, m2, m3):
         if distance < 20:
             print("whatttt")
             data["obstacle-found"] = True
+            data["obstacle-avoided"] = False
             stop(m, m1, m2, m3)
             if not data["said"] and time.time() - data["time-said"] > 5:
                 try:
@@ -118,13 +120,12 @@ def check_for_obstacle(m, m1, m2, m3):
                 data["said"] = True
         else:
             data["said"] = False
-            if data["last-command"] != None:
+            if not data["obstacle-avoided"]:
                 print(data["last-command"])
                 move_albert(data["last-command"], m, m1, m2, m3)
-                data["last-command"]=None
-                data["obstacle-found"] = False
-
-        time.sleep(0.05)
+                data["obstacle-avoided"] = True
+            data["obstacle-found"] = False
+        time.sleep(0.4)
 
 
 def start_socket(m, m1, m2, m3):
@@ -151,7 +152,7 @@ def start_socket(m, m1, m2, m3):
                      old_move = None
                      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                      socket_is_connected = False
-                     stop(m, m1, m2, m3)
+                     # stop(m, m1, m2, m3)
                      continue
 
          if socket_is_connected:
@@ -181,12 +182,12 @@ def start_socket(m, m1, m2, m3):
              if(move==9):
                  stop(m, m1, m2, m3)
                  print('End of order! Trying new order in 3 2 1...')
-                 time.sleep(3)
-                 printed = False
-                 sock.close()
-                 old_move = None
-                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                 socket_is_connected = False
+                 #time.sleep(3)
+                 #printed = False
+                 #sock.close()
+                 #old_move = None
+                 #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                 #socket_is_connected = False
                  continue
              data["last-command"]=move
              #old_move = move

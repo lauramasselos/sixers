@@ -96,13 +96,96 @@ public class CancelFoodHandler implements IntentRequestHandler {
 
 		// Construct respond text
 		String speechText = "You have cancelled ";
+		//Construct chef's order string
+		String chefText = "CANCELLATION: ";
 		speechText = speechText + numoneValue + " " + foodoneName;
+		if (numoneValue.equals("one")){
+			chefText = chefText + "1x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("two")){
+			chefText = chefText + "2x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("three")){
+			chefText = chefText + "3x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("four")){
+			chefText = chefText + "4x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("five")){
+			chefText = chefText + "5x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("six")){
+			chefText = chefText + "6x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("seven")){
+			chefText = chefText + "7x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("eight")){
+			chefText = chefText + "8x " +foodoneName + "\n";
+		}
+		else if (numoneValue.equals("nine")){
+			chefText = chefText + "9x " +foodoneName + "\n";
+		}
 		if (!foodtwoName.equals("")) {
+			if (numtwoValue.equals("one")){
+				chefText = chefText + "1x " +foodtwoName + "\n";
+			}
+			else if (numtwoValue.equals("two")){
+				chefText = chefText + "2x " +foodtwoName + "\n";
+			}
+			else if (numtwoValue.equals("three")){
+				chefText = chefText + "3x " +foodtwoName + "\n";
+			}
+			else if (numtwoValue.equals("four")){
+				chefText = chefText + "4x " +foodtwoName + "\n";
+			}
+			else if (numtwoValue.equals("five")){
+				chefText = chefText + "5x " +foodtwoName + "\n";
+			}
+			else if (numtwoValue.equals("six")){
+				chefText = chefText + "6x " +foodtwoName + "\n";
+			}
+			else if (numoneValue.equals("seven")){
+				chefText = chefText + "7x " +foodtwoName + "\n";
+			}
+			else if (numoneValue.equals("eight")){
+				chefText = chefText + "8x " +foodtwoName + "\n";
+			}
+			else if (numoneValue.equals("nine")){
+				chefText = chefText + "9x " +foodtwoName + "\n";
+			}
 			if (foodthreeName.equals("")) {
 				speechText = speechText + " and " + numtwoValue + " " + foodtwoName;
 			} else {
 				speechText = speechText + ", " + numtwoValue + " " + foodtwoName;
 				speechText = speechText + " and " + numthreeValue + " " + foodthreeName;
+				if (numthreeValue.equals("one")){
+					chefText = chefText + "1x " +foodthreeName + "\n";
+				}
+				else if (numthreeValue.equals("two")){
+					chefText = chefText + "2x " +foodthreeName + "\n";
+				}
+				else if (numthreeValue.equals("three")){
+					chefText = chefText + "3x " +foodthreeName + "\n";
+				}
+				else if (numthreeValue.equals("four")){
+					chefText = chefText + "4x " +foodthreeName + "\n";
+				}
+				else if (numthreeValue.equals("five")){
+					chefText = chefText + "5x " +foodthreeName + "\n";
+				}
+				else if (numthreeValue.equals("six")){
+					chefText = chefText + "6x " +foodthreeName + "\n";
+				}
+				else if (numoneValue.equals("seven")){
+					chefText = chefText + "7x " +foodthreeName + "\n";
+				}
+				else if (numoneValue.equals("eight")){
+					chefText = chefText + "8x " +foodthreeName + "\n";
+				}
+				else if (numoneValue.equals("nine")){
+					chefText = chefText + "9x " +foodthreeName + "\n";
+				}
 			}
 		}
 
@@ -114,17 +197,19 @@ public class CancelFoodHandler implements IntentRequestHandler {
 				speechText = speechText + " and " + numthreeValue + " " + foodthreeName;
 			}
 		}
+		
+		speechText = speechText + "What else can I do for you?";
 
 		if (intent.getConfirmationStatus().getValue().toString().equals("CONFIRMED")) {
 
 			CloseableHttpClient httpClient = HttpClients.createDefault();
-			HttpPost httpPost = new HttpPost("http://albert.visgean.me/api/orders/");
+			HttpPost httpPost = new HttpPost("http://albert.visgean.me/api/cancel/");
 
 			httpPost.addHeader("Authorization", System.getenv("API_TOKEN"));
 			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 			nameValuePairs.add(new BasicNameValuePair("device_id", deviceID));
 			// TODO: Should be Modified to adapted new API.
-			nameValuePairs.add(new BasicNameValuePair("products_text", speechText));
+			nameValuePairs.add(new BasicNameValuePair("text", chefText));
 
 			try {
 				httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs, "UTF-8"));
@@ -135,11 +220,11 @@ public class CancelFoodHandler implements IntentRequestHandler {
 			}
 
 			return handlerInput.getResponseBuilder().withSpeech(speechText)
-					.withReprompt("Would you like to order something else?").withShouldEndSession(false).build();
+					.withReprompt("What else can I do for you").withShouldEndSession(false).build();
 		} else {
 			return handlerInput.getResponseBuilder()
-					.withSpeech("Okay, I have not cancelled your order. Would you like to cancel something else?")
-					.withReprompt("Would you like to order anything else?").withShouldEndSession(false).build();
+					.withSpeech("Okay, I have not cancelled your order. What else can I do for you?")
+					.withReprompt("What else can I do for you?").withShouldEndSession(false).build();
 		}
 
 	}

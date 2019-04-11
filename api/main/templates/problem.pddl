@@ -5,7 +5,10 @@
 			{{ node }} - location
 		{% endfor %}
 
-		{{ delivery_order }} - delivery
+		{% if delivery_order %}
+			{{ delivery_order }} - delivery
+
+		{% endif %}
     )
 
     (:init
@@ -15,9 +18,10 @@
 
 		(at {{ current_location }} Albert)
 
-		(awaiting {{ delivery_order.table_number }} {{ delivery_order }})
-        (holding Albert {{ delivery_order }})
-
+		{% if delivery_order %}
+			(awaiting {{ delivery_order.table_number }} {{ delivery_order }})
+	        (holding Albert {{ delivery_order }})
+		{% endif %}
     )
 
     (:goal (and

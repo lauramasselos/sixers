@@ -98,7 +98,7 @@ public class OrderDrinkHandler implements IntentRequestHandler {
 		// Construct respond text
 		String speechText = "You have ordered ";
 		//Construct chef's order string
-		String chefText = "";
+		String chefText = "NEW ORDER: ";
 		speechText = speechText + numoneValue + " " + drinkoneName;
 		if (numoneValue.equals("one")){
 			chefText = chefText + "1x " +drinkoneName + "\n";
@@ -190,7 +190,7 @@ public class OrderDrinkHandler implements IntentRequestHandler {
 			}
 		}
 
-
+		speechText = speechText + "What else can I get for you?";
 
 		if (intent.getConfirmationStatus().getValue().toString().equals("CONFIRMED")) {
 
@@ -212,11 +212,11 @@ public class OrderDrinkHandler implements IntentRequestHandler {
 			}
 
 			return handlerInput.getResponseBuilder().withSpeech(speechText)
-					.withReprompt("Would you like anything else?").withShouldEndSession(false).build();
+					.withReprompt("What else can I get for you?").withShouldEndSession(false).build();
 		} else {
 			return handlerInput.getResponseBuilder()
-					.withSpeech("Okay, I've cancelled that request. Would you like something else?")
-					.withReprompt("Would you like anything else?").withShouldEndSession(false).build();
+					.withSpeech("Okay, I've cancelled that request. What else can I get for you?")
+					.withReprompt("What else can I get for you").withShouldEndSession(false).build();
 		}
 
 	}

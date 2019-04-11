@@ -1,11 +1,23 @@
 {% extends 'base.html' %}
 
+{% block bootstrap4_extra_head %}
+	{{ block.super }}
+{% endblock %}
+
+
 {% block body %}
-	{% include "includes/orders_sublist.html" with label="Order in delivery" orders=delivery_orders button_hide='hide' %}
-	{% if albert_is_empty %}
-		{% include "includes/orders_sublist.html" with label="Ready orders" orders=ready_orders button_text="Mark for delivery" button_state='delivery'%}
-	{% else %}
-		{% include "includes/orders_sublist.html" with label="Ready orders" orders=ready_orders %}
-	{% endif %}
-	{% include "includes/orders_sublist.html" with label="New orders" orders=new_orders button_text="Mark ready" button_state='ready' %}
+	<div id="orders"></div>
+
+	<script>
+        window.setInterval(function () {
+            var request = new XMLHttpRequest();
+            request.open("GET", '/orders_frame');
+            request.onreadystatechange = function () {
+                if (request.readyState === 4 && request.status === 200) {
+					document.getElementById("orders").innerHTML = request.responseText;
+                }
+            };
+            request.send(null); // Send the request now
+        }, 1000);
+	</script>
 {% endblock %}
